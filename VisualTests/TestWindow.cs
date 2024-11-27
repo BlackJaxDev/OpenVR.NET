@@ -70,7 +70,7 @@ internal class TestWindow : GameWindow {
 
 					return true;
 				},
-				addVertice: ( pos, norm, uv ) => {
+				addVertex: ( pos, norm, uv ) => {
 					mesh.Vertices.Add( new() {
 						Position = new( pos.X, pos.Y, pos.Z ),
 						UV = new( uv.X, 1 - uv.Y )

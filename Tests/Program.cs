@@ -187,7 +187,7 @@ vr.DeviceDetected += d => {
 				}
 			}, onError: ( err, ctx ) => {
 				Log( $"Error loading {ctx} `{name}`: {err}" );
-			}, addVertice: ( v, n, uv ) => {
+			}, addVertex: ( v, n, uv ) => {
 				sb.AppendLine( $"v {v.X} {v.Y} {v.Z}" );
 				sb.AppendLine( $"vt {uv.X} {uv.Y}" );
 			}, addTriangle: ( a, b, c ) => {
