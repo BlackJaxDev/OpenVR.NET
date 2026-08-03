@@ -1,6 +1,4 @@
-﻿using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -129,31 +127,42 @@ public class ComponentModel
         public ImageParamLoader ParamsLoader { private get; init; }
 
         /// <summary>
-        /// Loads the image as an ImageSharp image. 
-        /// Please make sure you don't <seealso cref="FreeResources"/> until the image is loaded
+        /// Copies the image into managed RGBA32 memory.
+        /// Please make sure you don't <seealso cref="FreeResources"/> until the copy completes.
         /// </summary>
-        public async Task<Image<Rgba32>?> LoadImage(bool flipVertically = false)
+        public async Task<(int Width, int Height, byte[] Data)?> LoadRgba32Data(bool flipVertically = false)
         {
             var (width, height, pointer) = await LoadParams();
+            if (width <= 0 || height <= 0 || pointer == IntPtr.Zero)
+                return null;
 
-            var data = new byte[width * height * 4];
+            int stride = checked(width * 4);
+            byte[] data = GC.AllocateUninitializedArray<byte>(checked(stride * height));
             Marshal.Copy(pointer, data, 0, data.Length);
-            Image<Rgba32> image = new(width, height);
+            if (flipVertically)
+                FlipRows(data, stride, height);
 
-            void ProcessPixels(PixelAccessor<Rgba32> rows)
+            return (width, height, data);
+        }
+
+        private static void FlipRows(byte[] data, int stride, int height)
+        {
+            byte[] rowBuffer = ArrayPool<byte>.Shared.Rent(stride);
+            try
             {
-                var stride = width * 4;
-                for (int y = 0; y < height; y++)
+                for (int top = 0, bottom = height - 1; top < bottom; top++, bottom--)
                 {
-                    var span = rows.GetRowSpan(flipVertically ? (height - y - 1) : y);
-                    var byteSpan = MemoryMarshal.CreateSpan(ref span[0].R, stride);
-                    data.AsSpan(stride * y, stride).CopyTo(byteSpan);
+                    Span<byte> topRow = data.AsSpan(top * stride, stride);
+                    Span<byte> bottomRow = data.AsSpan(bottom * stride, stride);
+                    topRow.CopyTo(rowBuffer);
+                    bottomRow.CopyTo(topRow);
+                    rowBuffer.AsSpan(0, stride).CopyTo(bottomRow);
                 }
             }
-
-            image.ProcessPixelRows(ProcessPixels);
-
-            return image;
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rowBuffer);
+            }
         }
 
         /// <inheritdoc cref="ImageParamLoader"/>

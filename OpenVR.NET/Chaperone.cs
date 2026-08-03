@@ -1,5 +1,4 @@
-﻿using SixLabors.ImageSharp.PixelFormats;
-using System.Numerics;
+﻿using System.Numerics;
 using Valve.VR;
 
 namespace OpenVR.NET;
@@ -25,9 +24,9 @@ public interface IChaperone
 
 	/// <summary>
 	/// Hints the scene ambience to the system to better match the system-rendered parts of the scene 
-	/// such as playfield bounds or the freeze-limbo
+	/// such as playfield bounds or the freeze-limbo, using normalized RGBA components.
 	/// </summary>
-	void SetSceneColourHint ( Rgba32 colour );
+	void SetSceneColourHint ( Vector4 colour );
 
 	/// <summary>
 	/// Whether the system is rendering playfield bounds
@@ -99,10 +98,9 @@ class Chaperone : IChaperone
 		}
 	}
 
-	public void SetSceneColourHint(Rgba32 colour)
+	public void SetSceneColourHint(Vector4 colour)
 	{
-		var v = colour.ToScaledVector4();
-		Valve.VR.OpenVR.Chaperone.SetSceneColor(new() { r = v.X, g = v.Y, b = v.Z, a = v.W });
+		Valve.VR.OpenVR.Chaperone.SetSceneColor(new() { r = colour.X, g = colour.Y, b = colour.Z, a = colour.W });
 	}
 
 	public bool AreBoundsVisible => Valve.VR.OpenVR.Chaperone.AreBoundsVisible();
